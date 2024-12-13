@@ -4,11 +4,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QuizApp.Components.Pages;
 
-// TODO: Get an IChatClient from DI
-public partial class Quiz : ComponentBase
+public partial class Quiz(IChatClient chatClient) : ComponentBase
 {
-    // TODO: Decide on a quiz subject
-    private const string QuizSubject = "Modern .NET programming";
+    private const string QuizSubject = "car makes and models";
 
     private ElementReference answerInput;
     private int numQuestions = 5;
@@ -45,6 +43,15 @@ public partial class Quiz : ComponentBase
         //  - Ask the LLM for a question on the subject 'QuizSubject'
         //  - Assign the question text to 'currentQuestionText'
         //  - Make sure it doesn't repeat the previous questions
+
+        var prompt = $"""
+            Provide a quiz question about the following subject: {QuizSubject}
+            Reply only with the question and no other text. Ask factual questions for which
+            the answer only needs to be a single word or phrase.
+            """;
+
+        var response = await chatClient.CompleteAsync(prompt);
+        currentQuestionText = response.Message.Text;
     }
 
     private async Task SubmitAnswerAsync()
@@ -62,7 +69,27 @@ public partial class Quiz : ComponentBase
         //  - Ask the LLM whether the answer 'UserAnswer' is correct for the question 'currentQuestionText'
         //  - If it's correct, increment 'pointsScored'
         //  - Set 'currentQuestionOutcome' to a string explaining why the answer is correct or incorrect
-        currentQuestionOutcome = "TODO: Determine whether that's correct";
+        var prompt = $"""
+            You are marking quiz answers as correct or incorrect.
+            The quiz subject is {QuizSubject}.
+            The question is: {currentQuestionText}
+            The student's answer is: {UserAnswer}
+
+            Is the student's answer correct? Your answer must start with CORRECT: or INCORRECT:
+            followed by an explanation or another remark about the question.
+            Examples: CORRECT: And did you know, Jupiter is made of gas?
+                      INCORRECT: The Riemann hypothesis is still unsolved.
+            """;
+
+        var response = await chatClient.CompleteAsync(prompt);
+
+        currentQuestionOutcome = response.Message.Text!;
+
+        // There's a better way to do this using structured output. We'll get to that later.
+        if (currentQuestionOutcome.StartsWith("CORRECT"))
+        {
+            pointsScored++;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

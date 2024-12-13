@@ -10,6 +10,13 @@ var builder = WebApplication.CreateBuilder(args);
 //  - It can be any IChatClient implementation, for example AzureOpenAIClient or OllamaChatClient
 //  - See instructions for sample code
 
+var innerChatClient = new AzureOpenAIClient(
+    new Uri(builder.Configuration["AzureOpenAI:Endpoint"]!),
+    new ApiKeyCredential(builder.Configuration["AzureOpenAI:Key"]!))
+    .AsChatClient("gpt-4o-mini");
+
+builder.Services.AddChatClient(pipeline => pipeline.Use(innerChatClient));
+
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
 var app = builder.Build();
