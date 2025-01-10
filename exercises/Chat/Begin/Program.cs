@@ -24,4 +24,21 @@ hostBuilder.Services.AddChatClient(innerChatClient);
 var app = hostBuilder.Build();
 var chatClient = app.Services.GetRequiredService<IChatClient>();
 
-// TODO: Add your code here
+var response = await chatClient.CompleteAsync(
+    "Explain how real AI compares to sci-fi AI in max 200 words.");
+
+Console.WriteLine(response.Message.Text);
+Console.WriteLine($"Tokens used: in={response.Usage?.InputTokenCount}, out={response.Usage?.OutputTokenCount}");
+
+if (response.RawRepresentation is OpenAI.Chat.ChatCompletion openAICompletion)
+{
+    Console.WriteLine($"Fingerprint: {openAICompletion.SystemFingerprint}");
+}
+
+var responseStream = chatClient.CompleteStreamingAsync(
+    "Explain how real AI compares to sci-fi AI in max 20 words.");
+
+await foreach (var message in responseStream)
+{
+    Console.WriteLine(message.Text);
+}
