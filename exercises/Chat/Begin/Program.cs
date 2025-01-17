@@ -128,7 +128,7 @@ while (true)
     // Get Input
     Console.ForegroundColor = ConsoleColor.White;
     Console.Write("\nYou: ");
-    string input = Console.ReadLine();
+    string? input = Console.ReadLine();
 
     if (string.IsNullOrWhiteSpace(input))
     {
@@ -209,7 +209,14 @@ public static class UseRateLimitStep
 
         public override async Task<ChatCompletion> CompleteAsync(IList<ChatMessage> chatMessages, ChatOptions? options = null, CancellationToken cancellationToken = default)
         {
-            using var lease = await rateLimit.AcquireAsync(cancellationToken: cancellationToken);
+            //using var lease = await rateLimit.AcquireAsync(cancellationToken: cancellationToken);
+            using var lease = rateLimit.AttemptAcquire();
+
+            if (!lease.IsAcquired)
+            {
+                return new ChatCompletion(new ChatMessage(ChatRole.System, "Sorry, I'm too busy right now. Try again later."));
+            }
+
             return await base.CompleteAsync(chatMessages, options, cancellationToken);
         }
     }
